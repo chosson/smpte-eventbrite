@@ -10,13 +10,7 @@ from PySide6.QtCore import Qt, QSignalBlocker
 from PySide6.QtWidgets import QMainWindow, QTableWidgetItem, QComboBox
 
 from eventbrite_manager import *
-
-
-def checkToBool(checkState):
-	return False if checkState == Qt.Unchecked else True
-
-def boolToCheck(boolean):
-	return Qt.Checked if boolean else Qt.Unchecked
+from utils import *
 
 
 # Importation des types venant du .ui
@@ -33,18 +27,20 @@ class MainWindow(uiclass, baseclass):
 		# Config des affichages
 		self.tableAttendees.setHorizontalHeaderLabels(["ID Eventbrite", "Prénom", "Nom", "Rôle", "Compagnie", "Imprimé?"])
 		# Connexion des signaux
-		self.btnConnectUser.clicked.connect(self.connect_user)
-		self.comboOrg.currentIndexChanged.connect(self.load_events_list)
-		self.btnLoadEvent.clicked.connect(self.load_event_data)
+		self.btnConnectUser.clicked.connect(self.connect_user_from_input)
+		self.comboOrg.currentIndexChanged.connect(self.load_events_list_from_input)
+		self.btnLoadEvent.clicked.connect(self.load_event_data_from_input)
 		self.tableAttendees.cellChanged.connect(self.update_attendee_from_cells)
 		self.btnSaveSession.clicked.connect(self.quicksave_session)
 		self.btnLoadSession.clicked.connect(self.quickload_session)
 
 	# Connecte un utilisateur à partir de la clé d'API entrée dans le LineEdit.
-	def connect_user(self):
+	def connect_user_from_input(self):
+		# Griser les boîtes et changer le texte de connexion
 		self.groupAuth.setEnabled(False)
 		self.groupEvent.setEnabled(False)
 		self.tableAttendees.clearContents()
+		self.tableAttendees.setRowCount(1)
 		self.lblConnectedUser.setText(f"Connexion...")
 		self.repaint()
 		# Authentifier avec la clé de API.
@@ -62,19 +58,19 @@ class MainWindow(uiclass, baseclass):
 		blocker = QSignalBlocker(self.comboOrg)
 		# Charger la liste des organisations existante pour l'utilisateur connecté
 		self.comboOrg.clear()
-		for org in self.eventbrite.list_orgs():
+		for org in self.eventbrite.fetch_orgs():
 			item_text = org["name"]
 			item_data = int(org["id"])
 			self.comboOrg.addItem(item_text, item_data)
 		# Sélectionner par défaut la première organisation.
 		self.comboOrg.setCurrentIndex(0)
-		self.load_events_list()
+		self.load_events_list_from_input()
 
 	# Charge la liste d'événements associée à l'organisation sélectionnée dans le ComboBox.
-	def load_events_list(self):
+	def load_events_list_from_input(self):
 		selected_org = self.comboOrg.currentData()
 		self.comboEvent.clear()
-		events = self.eventbrite.list_events(selected_org)
+		events = self.eventbrite.fetch_events(selected_org)
 		for ev in events:
 			item_text = ev["name"]["text"]
 			item_data = int(ev["id"])
@@ -82,7 +78,7 @@ class MainWindow(uiclass, baseclass):
 		self.comboEvent.setCurrentIndex(0)
 
 	# Charge les données de base d'un événement ainsi que sa liste de participant.
-	def load_event_data(self):
+	def load_event_data_from_input(self):
 		self.sync_data_from_table()
 		# Charger les infos de l'événements
 		new_event_id = int(self.comboEvent.currentData())
@@ -129,7 +125,7 @@ class MainWindow(uiclass, baseclass):
 		attendee.last_name = table.item(row, 2).text()
 		attendee.position = table.item(row, 3).text()
 		attendee.company = table.item(row, 4).text()
-		attendee.printing_status = Print(table.cellWidget(row, 5).currentIndex())
+		attendee.printing_status = PrintStatus(table.cellWidget(row, 5).currentIndex())
 
 	def sync_data_from_table(self):
 		for i in range(self.tableAttendees.rowCount()):
@@ -139,19 +135,19 @@ class MainWindow(uiclass, baseclass):
 				self.update_attendee_from_cells(i, 0)
 
 	def quicksave_session(self):
+		# Syncro avec la table (juste au cas)
 		self.sync_data_from_table()
 		session_data = {
-			"api_key": self.eventbrite.api.oauth_token
+			"api_key": self.eventbrite.api.oauth_token,
+			"event": self.eventbrite.event,
+			"attendees": self.eventbrite.serialize_attendees()
 		}
 
 		try:
 			os.mkdir("sessions/")
 		except:
 			pass
-		backup_filename = os.path.join(
-			"sessions",
-			time.strftime("%Y%m%d_%H%M%S_quicksave.json", time.localtime())
-		)
+		backup_filename = f"sessions/{format_datetime()}_quicksave.json"
 		json.dump(session_data, open("sessions/quicksave.json", "w"), indent=2)
 		shutil.copy2("sessions/quicksave.json", backup_filename)
 		logging.info(f"Saved session to sessions/quicksave.json")
@@ -162,7 +158,18 @@ class MainWindow(uiclass, baseclass):
 			logging.info(f"Loaded session from sessions/quicksave.json")
 			self.lineApiKey.setText(session_data["api_key"])
 			self.lineApiKey.repaint()
-			self.connect_user()
+			self.connect_user_from_input()
+			for i in range(self.comboOrg.count()):
+				if self.comboOrg.itemData(i) == int(session_data["event"]["organization_id"]):
+					self.comboOrg.setCurrentIndex(i)
+					break
+			for i in range(self.comboEvent.count()):
+				if self.comboEvent.itemData(i) == int(session_data["event"]["id"]):
+					self.comboEvent.setCurrentIndex(i)
+					break
+			self.eventbrite.event = session_data["event"]
+			self.eventbrite.load_serialized_attendees(session_data["attendees"])
+			self.fill_table()
 		except FileNotFoundError:
 			logging.error(f"Could not load session from sessions/quicksave.json")
 

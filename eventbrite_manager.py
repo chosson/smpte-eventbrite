@@ -1,13 +1,14 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from enum import IntEnum
 import logging
+import json
 
 from eventbrite import Eventbrite
 import qrcode
 import png
 
 
-class Print(IntEnum):
+class PrintStatus(IntEnum):
 	PRINTED = 0
 	UNPRINTED = 1
 	EXCLUDED = 2
@@ -36,7 +37,7 @@ class Attendee:
 			obj["profile"].get("job_title", ""),
 			obj["profile"].get("company", ""),
 			obj["barcodes"][0]["barcode"],
-			Print.UNPRINTED,
+			PrintStatus.UNPRINTED,
 			attendee_object
 		)
 
@@ -62,12 +63,12 @@ class EventbriteManager:
 		else:
 			logging.error(f"Error {self.user['status_code']}: {self.user['error_description']}")
 
-	def list_orgs(self):
+	def fetch_orgs(self):
 		response = self.api.get("/users/me/organizations/")
 		logging.info(f"Fetched organizations for user {self.user['id']}")
 		return response["organizations"]
 
-	def list_events(self, org_id):
+	def fetch_events(self, org_id):
 		response = self.api.get(f"/organizations/{org_id}/events/")
 		logging.info(f"Fetched events list for organization {org_id}")
 		return response["events"]
@@ -98,4 +99,12 @@ class EventbriteManager:
 					# Conserver quand même le flag d'impression complétée
 					att.printing_status = self.attendees[att_id].printing_status
 					self.attendees[att_id] = att
+
+	def serialize_attendees(self):
+		serialized_data = {k: asdict(v) for k, v in self.attendees.items()}
+		return serialized_data
+
+	def load_serialized_attendees(self, serialized_data):
+		deserialized = {k: Attendee(**v) for k, v in serialized_data.items()}
+		self.attendees = deserialized
 
