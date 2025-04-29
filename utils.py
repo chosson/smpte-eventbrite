@@ -2,8 +2,14 @@ import os
 import logging
 import time
 
-from PySide6.QtCore import Qt, QSignalBlocker
+from PySide6.QtCore import Qt
 
+
+def mkdir_if_not_there(*args, **kwargs):
+	try:
+		return os.mkdir(*args, **kwargs)
+	except FileExistsError:
+		pass
 
 def checkToBool(checkState):
 	return False if checkState == Qt.Unchecked else True
@@ -23,8 +29,7 @@ def setup_basic_logging(logs_dir, con_level, file_level=logging.DEBUG):
 	con_handler.setLevel(con_level)
 
 	# Créer le dossier de journaux s'il n'existe pas.
-	if not os.path.exists(logs_dir):
-		os.mkdir(logs_dir)
+	mkdir_if_not_there(logs_dir)
 	# Construire le chemin du fichier selon la date et l'heure actuelle.
 	filename = os.path.join(
 		logs_dir,

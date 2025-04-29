@@ -5,9 +5,7 @@ import logging
 import time
 
 
-from eventbrite import Eventbrite
-import qrcode
-from PySide6.QtWidgets import QMainWindow, QApplication
+from PySide6.QtWidgets import QApplication
 
 import main_window
 from utils import *

@@ -1,11 +1,8 @@
 from dataclasses import dataclass, asdict
 from enum import IntEnum
 import logging
-import json
 
 from eventbrite import Eventbrite
-import qrcode
-import png
 
 
 class PrintStatus(IntEnum):
@@ -27,12 +24,12 @@ class Attendee:
 	raw_data: any
 
 	def __getitem__(self, index):
-		if not hasattr(self, index):
+		if index not in self.__dataclass_fields__:
 			raise AttributeError(index)
 		return getattr(self, index)
 
 	def __setitem__(self, index, val):
-		if not hasattr(self, index):
+		if index not in self.__dataclass_fields__:
 			raise AttributeError(index)
 		setattr(self, index, val)
 

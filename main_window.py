@@ -4,13 +4,12 @@ import json
 import time
 import shutil
 
-import PySide6
 from PySide6 import QtUiTools
 from PySide6.QtCore import Qt, QSignalBlocker
-from PySide6.QtWidgets import QMainWindow, QTableWidgetItem, QComboBox
+from PySide6.QtWidgets import QMainWindow, QTableWidgetItem, QComboBox, QFileDialog
 
-from eventbrite_manager import *
 from utils import *
+from eventbrite_manager import *
 
 
 # Importation des types venant du .ui
@@ -105,20 +104,20 @@ class MainWindow(uiclass, baseclass):
 		# Faut désactiver le tri auto durant la modification de la table
 		table.sortItems(-1)
 		table.setRowCount(len(self.eventbrite.attendees))
-		for index, att in enumerate(self.eventbrite.attendees.values()):
-			# Configurer la première colonne (le ID) pour être lecture seule, vu que briserait trop de chose de laisser le ID éditable.
-			idCellItem = QTableWidgetItem(att.attendee_id)
-			idCellItem.setFlags(idCellItem.flags() & ~Qt.ItemIsEditable)
-			table.setItem(index, 0, idCellItem)
-			table.setItem(index, 1, QTableWidgetItem(att.first_name.strip()))
-			table.setItem(index, 2, QTableWidgetItem(att.last_name.strip()))
-			table.setItem(index, 3, QTableWidgetItem(att.position.strip()))
-			table.setItem(index, 4, QTableWidgetItem(att.company.strip()))
+		for i, att in enumerate(self.eventbrite.attendees.values()):
+			# Les colonnes de la rangée actuelle
+			table.setItem(i, 0, QTableWidgetItem(att.attendee_id))
+			table.setItem(i, 1, QTableWidgetItem(att.first_name.strip()))
+			table.setItem(i, 2, QTableWidgetItem(att.last_name.strip()))
+			table.setItem(i, 3, QTableWidgetItem(att.position.strip()))
+			table.setItem(i, 4, QTableWidgetItem(att.company.strip()))
 			# La dernière colonne est un combo box indiquant le status d'impression
 			printedCell = QComboBox()
 			printedCell.addItems(["Oui", "Non", "Exclu"])
 			printedCell.setCurrentIndex(att.printing_status)
-			table.setCellWidget(index, 5, printedCell)
+			table.setCellWidget(i, 5, printedCell)
+			# Configurer la première colonne (le ID) pour être lecture seule, vu que briserait trop de chose de laisser le ID éditable.
+			table.item(i, 0).setFlags(table.item(i, 0).flags() & ~Qt.ItemIsEditable)
 		table.sortItems(0)
 
 	def update_attendee_from_cells(self, row, column):
@@ -165,6 +164,9 @@ class MainWindow(uiclass, baseclass):
 			table.setItem(i, 0, QTableWidgetItem(name.strip()))
 			table.setItem(i, 1, QTableWidgetItem(str(num_atts)))
 			table.setItem(i, 2, QTableWidgetItem(""))
+			# Seulement la valeur de remplacement doit être éditable.
+			table.item(i, 0).setFlags(table.item(i, 0).flags() & ~Qt.ItemIsEditable)
+			table.item(i, 1).setFlags(table.item(i, 0).flags() & ~Qt.ItemIsEditable)
 		table.sortItems(0)
 
 	def apply_manual_replacement(self):
@@ -196,10 +198,7 @@ class MainWindow(uiclass, baseclass):
 			"attendees": self.eventbrite.serialize_attendees()
 		}
 
-		try:
-			os.mkdir("sessions/")
-		except:
-			pass
+		mkdir_if_not_there("sessions/")
 		backup_filename = f"sessions/{format_datetime()}_quicksave.json"
 		json.dump(session_data, open("sessions/quicksave.json", "w"), indent=2)
 		shutil.copy2("sessions/quicksave.json", backup_filename)
