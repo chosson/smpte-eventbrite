@@ -30,13 +30,13 @@ class Attendee:
 	def build_from_object(cls, attendee_object):
 		obj = attendee_object
 		return cls(
-			obj["id"],
-			obj["profile"]["first_name"],
-			obj["profile"]["last_name"],
-			obj["profile"]["email"],
-			obj["profile"].get("job_title", ""),
-			obj["profile"].get("company", ""),
-			obj["barcodes"][0]["barcode"],
+			obj["id"].strip(),
+			obj["profile"]["first_name"].strip(),
+			obj["profile"]["last_name"].strip(),
+			obj["profile"]["email"].strip(),
+			obj["profile"].get("job_title", "").strip(),
+			obj["profile"].get("company", "").strip(),
+			obj["barcodes"][0]["barcode"].strip(),
 			PrintStatus.UNPRINTED,
 			attendee_object
 		)

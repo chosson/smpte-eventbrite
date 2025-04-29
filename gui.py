@@ -98,16 +98,18 @@ class MainWindow(uiclass, baseclass):
 		# Mettre à jour la table de participants
 		table = self.tableAttendees
 		table.clearContents()
+		# Faut désactiver le tri auto durant la modification de la table
+		table.sortItems(-1)
 		table.setRowCount(len(self.eventbrite.attendees))
 		for index, att in enumerate(self.eventbrite.attendees.values()):
 			# Configurer la première colonne (le ID) pour être lecture seule, vu que briserait trop de chose de laisser le ID éditable.
 			idCellItem = QTableWidgetItem(att.attendee_id)
 			idCellItem.setFlags(idCellItem.flags() & ~Qt.ItemIsEditable)
 			table.setItem(index, 0, idCellItem)
-			table.setItem(index, 1, QTableWidgetItem(att.first_name))
-			table.setItem(index, 2, QTableWidgetItem(att.last_name))
-			table.setItem(index, 3, QTableWidgetItem(att.position))
-			table.setItem(index, 4, QTableWidgetItem(att.company))
+			table.setItem(index, 1, QTableWidgetItem(att.first_name.strip()))
+			table.setItem(index, 2, QTableWidgetItem(att.last_name.strip()))
+			table.setItem(index, 3, QTableWidgetItem(att.position.strip()))
+			table.setItem(index, 4, QTableWidgetItem(att.company.strip()))
 			# La dernière colonne est un combo box indiquant le status d'impression
 			printedCell = QComboBox()
 			printedCell.addItems(["Oui", "Non", "Exclu"])
@@ -139,30 +141,34 @@ class MainWindow(uiclass, baseclass):
 		company_names = {}
 		for att_id, att in self.eventbrite.attendees.items():
 			if att.company not in company_names:
-				company_names[att.company] = set()
-			company_names[att.company].add(att.attendee_id)
+				company_names[att.company] = 0
+			company_names[att.company] += 1
 
 		table = self.tableCompanyNames
 		table.clearContents()
 		table.setRowCount(len(company_names))
+		# Faut désactiver le tri auto durant la modification de la table
+		table.sortItems(-1)
 		for i, co in enumerate(company_names.items()):
-			name, atts = co
-			table.setItem(i, 0, QTableWidgetItem(name))
-			table.setItem(i, 1, QTableWidgetItem(str(len(atts))))
+			name, num_atts = co
+			table.setItem(i, 0, QTableWidgetItem(name.strip()))
+			table.setItem(i, 1, QTableWidgetItem(str(num_atts)))
 			table.setItem(i, 2, QTableWidgetItem(""))
 		table.sortItems(0)
 
 	def apply_company_name_changes(self):
 		table = self.tableCompanyNames
+		# Faut désactiver le tri auto durant la modification de la table
+		table.sortItems(-1)
 		for i in range(table.rowCount()):
 			name_cell = table.item(i, 0)
 			replace_cell = table.item(i, 2)
 			# Laisser la cellule de remplacement vide ne fait aucun remplacement.
-			if replace_cell is None or replace_cell.text() == "":
+			if replace_cell is None or replace_cell.text().strip() == "":
 				continue
 			for att in self.eventbrite.attendees.values():
-				if att.company == name_cell.text():
-					att.company = table.item(i, 2).text()
+				if att.company == name_cell.text().strip():
+					att.company = replace_cell.text().strip()
 		# Plus fiable de reconstruire les tables, même si un peu lent.
 		self.fill_attendees_table()
 		self.fill_companies_table()
