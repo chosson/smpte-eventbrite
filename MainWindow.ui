@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>665</width>
-    <height>632</height>
+    <width>933</width>
+    <height>626</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -31,7 +31,7 @@
         <item>
          <widget class="QGroupBox" name="groupAuth">
           <property name="title">
-           <string>Authentification</string>
+           <string>Authentification Eventbrite</string>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_3">
            <item>
@@ -49,6 +49,12 @@
                 <size>
                  <width>200</width>
                  <height>0</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>300</width>
+                 <height>16777215</height>
                 </size>
                </property>
                <property name="echoMode">
@@ -121,7 +127,7 @@
            <bool>false</bool>
           </property>
           <property name="title">
-           <string>Organisation et événement</string>
+           <string>Organisation et événement Eventbrite</string>
           </property>
           <property name="checkable">
            <bool>false</bool>
@@ -276,7 +282,7 @@
            <bool>true</bool>
           </property>
           <property name="rowCount">
-           <number>1</number>
+           <number>0</number>
           </property>
           <property name="columnCount">
            <number>6</number>
@@ -284,19 +290,129 @@
           <attribute name="horizontalHeaderCascadingSectionResizes">
            <bool>false</bool>
           </attribute>
+          <attribute name="horizontalHeaderDefaultSectionSize">
+           <number>140</number>
+          </attribute>
           <attribute name="horizontalHeaderStretchLastSection">
-           <bool>true</bool>
+           <bool>false</bool>
           </attribute>
           <attribute name="verticalHeaderVisible">
            <bool>false</bool>
           </attribute>
-          <row/>
-          <column/>
-          <column/>
-          <column/>
-          <column/>
-          <column/>
-          <column/>
+          <column>
+           <property name="text">
+            <string>ID Eventbrite</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>Prénom</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>Nom</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>Rôle</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>Compagnie</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>Imprimé?</string>
+           </property>
+          </column>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="tab">
+       <attribute name="title">
+        <string>Compagnies</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="verticalLayout_8">
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_6">
+          <item>
+           <widget class="QPushButton" name="btnRefreshCompanies">
+            <property name="text">
+             <string>Rafraîchir</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnApplyCompanyChanges">
+            <property name="text">
+             <string>Appliquer remplacements</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="horizontalSpacer_5">
+            <property name="orientation">
+             <enum>Qt::Orientation::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <widget class="QGroupBox" name="groupBox">
+          <property name="title">
+           <string>Liste des compagnies</string>
+          </property>
+          <layout class="QVBoxLayout" name="verticalLayout_7">
+           <item>
+            <widget class="QTableWidget" name="tableCompanyNames">
+             <property name="sortingEnabled">
+              <bool>true</bool>
+             </property>
+             <property name="rowCount">
+              <number>0</number>
+             </property>
+             <property name="columnCount">
+              <number>3</number>
+             </property>
+             <attribute name="horizontalHeaderDefaultSectionSize">
+              <number>150</number>
+             </attribute>
+             <attribute name="horizontalHeaderShowSortIndicator" stdset="0">
+              <bool>true</bool>
+             </attribute>
+             <attribute name="verticalHeaderVisible">
+              <bool>false</bool>
+             </attribute>
+             <column>
+              <property name="text">
+               <string>Nom</string>
+              </property>
+             </column>
+             <column>
+              <property name="text">
+               <string>Nb participants</string>
+              </property>
+             </column>
+             <column>
+              <property name="text">
+               <string>À remplacer par...</string>
+              </property>
+             </column>
+            </widget>
+           </item>
+          </layout>
          </widget>
         </item>
        </layout>
@@ -324,7 +440,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>665</width>
+     <width>933</width>
      <height>21</height>
     </rect>
    </property>

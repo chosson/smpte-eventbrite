@@ -24,13 +24,13 @@ class MainWindow(uiclass, baseclass):
 
 		# Chargement du GUI
 		self.setupUi(self)
-		# Config des affichages
-		self.tableAttendees.setHorizontalHeaderLabels(["ID Eventbrite", "Prénom", "Nom", "Rôle", "Compagnie", "Imprimé?"])
 		# Connexion des signaux
 		self.btnConnectUser.clicked.connect(self.connect_user_from_input)
 		self.comboOrg.currentIndexChanged.connect(self.load_events_list_from_input)
 		self.btnLoadEvent.clicked.connect(self.load_event_data_from_input)
 		self.tableAttendees.cellChanged.connect(self.update_attendee_from_cells)
+		self.btnRefreshCompanies.clicked.connect(self.fill_companies_table)
+		self.btnApplyCompanyChanges.clicked.connect(self.apply_company_name_changes)
 		self.btnSaveSession.clicked.connect(self.quicksave_session)
 		self.btnLoadSession.clicked.connect(self.quickload_session)
 
@@ -40,7 +40,7 @@ class MainWindow(uiclass, baseclass):
 		self.groupAuth.setEnabled(False)
 		self.groupEvent.setEnabled(False)
 		self.tableAttendees.clearContents()
-		self.tableAttendees.setRowCount(1)
+		self.tableAttendees.setRowCount(0)
 		self.lblConnectedUser.setText(f"Connexion...")
 		self.repaint()
 		# Authentifier avec la clé de API.
@@ -79,7 +79,7 @@ class MainWindow(uiclass, baseclass):
 
 	# Charge les données de base d'un événement ainsi que sa liste de participant.
 	def load_event_data_from_input(self):
-		self.sync_data_from_table()
+		self.sync_data_from_att_table()
 		# Charger les infos de l'événements
 		new_event_id = int(self.comboEvent.currentData())
 		self.eventbrite.load_event(new_event_id)
@@ -90,9 +90,9 @@ class MainWindow(uiclass, baseclass):
 		# Charger et mettre à jour les participants
 		new_attendees = self.eventbrite.download_attendees()
 		self.eventbrite.update_attendees(new_attendees, self.chkOverwrite.isChecked())
-		self.fill_table()
+		self.fill_attendees_table()
 
-	def fill_table(self):
+	def fill_attendees_table(self):
 		# D'abord déconnecter le signal qui est redondant (voir récursif)
 		blocker = QSignalBlocker(self.tableAttendees)
 		# Mettre à jour la table de participants
@@ -113,6 +113,7 @@ class MainWindow(uiclass, baseclass):
 			printedCell.addItems(["Oui", "Non", "Exclu"])
 			printedCell.setCurrentIndex(att.printing_status)
 			table.setCellWidget(index, 5, printedCell)
+		table.sortItems(0)
 
 	def update_attendee_from_cells(self, row, column):
 		table = self.tableAttendees
@@ -127,16 +128,48 @@ class MainWindow(uiclass, baseclass):
 		attendee.company = table.item(row, 4).text()
 		attendee.printing_status = PrintStatus(table.cellWidget(row, 5).currentIndex())
 
-	def sync_data_from_table(self):
+	def sync_data_from_att_table(self):
 		for i in range(self.tableAttendees.rowCount()):
 			cell_item = self.tableAttendees.item(i, 0)
 			# Rien à faire si la cellule n'existe pas (différente de vide)
 			if cell_item is not None:
 				self.update_attendee_from_cells(i, 0)
 
+	def fill_companies_table(self):
+		company_names = {}
+		for att_id, att in self.eventbrite.attendees.items():
+			if att.company not in company_names:
+				company_names[att.company] = set()
+			company_names[att.company].add(att.attendee_id)
+
+		table = self.tableCompanyNames
+		table.clearContents()
+		table.setRowCount(len(company_names))
+		for i, co in enumerate(company_names.items()):
+			name, atts = co
+			table.setItem(i, 0, QTableWidgetItem(name))
+			table.setItem(i, 1, QTableWidgetItem(str(len(atts))))
+			table.setItem(i, 2, QTableWidgetItem(""))
+		table.sortItems(0)
+
+	def apply_company_name_changes(self):
+		table = self.tableCompanyNames
+		for i in range(table.rowCount()):
+			name_cell = table.item(i, 0)
+			replace_cell = table.item(i, 2)
+			# Laisser la cellule de remplacement vide ne fait aucun remplacement.
+			if replace_cell is None or replace_cell.text() == "":
+				continue
+			for att in self.eventbrite.attendees.values():
+				if att.company == name_cell.text():
+					att.company = table.item(i, 2).text()
+		# Plus fiable de reconstruire les tables, même si un peu lent.
+		self.fill_attendees_table()
+		self.fill_companies_table()
+
 	def quicksave_session(self):
 		# Syncro avec la table (juste au cas)
-		self.sync_data_from_table()
+		self.sync_data_from_att_table()
 		session_data = {
 			"api_key": self.eventbrite.api.oauth_token,
 			"event": self.eventbrite.event,
@@ -169,7 +202,7 @@ class MainWindow(uiclass, baseclass):
 					break
 			self.eventbrite.event = session_data["event"]
 			self.eventbrite.load_serialized_attendees(session_data["attendees"])
-			self.fill_table()
+			self.fill_attendees_table()
 		except FileNotFoundError:
 			logging.error(f"Could not load session from sessions/quicksave.json")
 
