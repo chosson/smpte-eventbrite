@@ -9,7 +9,7 @@ from eventbrite import Eventbrite
 import qrcode
 from PySide6.QtWidgets import QMainWindow, QApplication
 
-import gui
+import main_window
 from utils import *
 
 
@@ -18,8 +18,8 @@ def main():
 	setup_basic_logging("logs", logging.INFO, logging.DEBUG)
 
 	app = QApplication(sys.argv)
-	window = gui.MainWindow()
-	window.show()
+	win = main_window.MainWindow()
+	win.show()
 	app.exec()
 
 if __name__ == "__main__":
