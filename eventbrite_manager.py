@@ -26,6 +26,16 @@ class Attendee:
 	printing_status: IntEnum
 	raw_data: any
 
+	def __getitem__(self, index):
+		if not hasattr(self, index):
+			raise AttributeError(index)
+		return getattr(self, index)
+
+	def __setitem__(self, index, val):
+		if not hasattr(self, index):
+			raise AttributeError(index)
+		setattr(self, index, val)
+
 	@classmethod
 	def build_from_object(cls, attendee_object):
 		obj = attendee_object

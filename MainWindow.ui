@@ -18,7 +18,7 @@
     <item>
      <widget class="QTabWidget" name="tabsMain">
       <property name="currentIndex">
-       <number>3</number>
+       <number>0</number>
       </property>
       <widget class="QWidget" name="tabEvent">
        <property name="accessibleName">
@@ -335,48 +335,77 @@
       </widget>
       <widget class="QWidget" name="tab">
        <attribute name="title">
-        <string>Compagnies</string>
+        <string>Filtres</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_8">
         <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_6">
-          <item>
-           <widget class="QPushButton" name="btnRefreshCompanies">
-            <property name="text">
-             <string>Rafraîchir</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QPushButton" name="btnApplyCompanyChanges">
-            <property name="text">
-             <string>Appliquer remplacements</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <spacer name="horizontalSpacer_5">
-            <property name="orientation">
-             <enum>Qt::Orientation::Horizontal</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>40</width>
-              <height>20</height>
-             </size>
-            </property>
-           </spacer>
-          </item>
-         </layout>
-        </item>
-        <item>
          <widget class="QGroupBox" name="groupBox">
           <property name="title">
-           <string>Liste des compagnies</string>
+           <string>Remplacement manuel</string>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_7">
            <item>
-            <widget class="QTableWidget" name="tableCompanyNames">
+            <layout class="QHBoxLayout" name="horizontalLayout_6">
+             <item>
+              <widget class="QComboBox" name="comboManualFilter">
+               <property name="minimumSize">
+                <size>
+                 <width>150</width>
+                 <height>0</height>
+                </size>
+               </property>
+               <property name="currentIndex">
+                <number>-1</number>
+               </property>
+               <property name="placeholderText">
+                <string>Choisir propriété</string>
+               </property>
+               <item>
+                <property name="text">
+                 <string>Prénom</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>Nom</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>Rôle</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>Compagnie</string>
+                </property>
+               </item>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="btnApplyManualReplacement">
+               <property name="text">
+                <string>Appliquer remplacements</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <spacer name="horizontalSpacer_5">
+               <property name="orientation">
+                <enum>Qt::Orientation::Horizontal</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>40</width>
+                 <height>20</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+            </layout>
+           </item>
+           <item>
+            <widget class="QTableWidget" name="tableManualFilter">
              <property name="sortingEnabled">
               <bool>true</bool>
              </property>
@@ -387,7 +416,7 @@
               <number>3</number>
              </property>
              <attribute name="horizontalHeaderDefaultSectionSize">
-              <number>150</number>
+              <number>200</number>
              </attribute>
              <attribute name="horizontalHeaderShowSortIndicator" stdset="0">
               <bool>true</bool>
@@ -397,19 +426,48 @@
              </attribute>
              <column>
               <property name="text">
-               <string>Nom</string>
+               <string>Valeur actuelle</string>
               </property>
              </column>
              <column>
               <property name="text">
-               <string>Nb participants</string>
+               <string>Nb occurences</string>
               </property>
              </column>
              <column>
               <property name="text">
-               <string>À remplacer par...</string>
+               <string>Valeur de remplacement</string>
               </property>
              </column>
+            </widget>
+           </item>
+           <item>
+            <spacer name="horizontalSpacer_6">
+             <property name="orientation">
+              <enum>Qt::Orientation::Horizontal</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>40</width>
+               <height>20</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+           <item>
+            <widget class="QGroupBox" name="groupBox_2">
+             <property name="title">
+              <string>Filtres automatiques</string>
+             </property>
+             <layout class="QVBoxLayout" name="verticalLayout_10">
+              <item>
+               <widget class="QLabel" name="label_2">
+                <property name="text">
+                 <string>En construction...</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
             </widget>
            </item>
           </layout>
@@ -423,9 +481,9 @@
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_6">
         <item>
-         <widget class="QPushButton" name="pushButton">
+         <widget class="QLabel" name="label_3">
           <property name="text">
-           <string>PushButton</string>
+           <string>En construction...</string>
           </property>
          </widget>
         </item>

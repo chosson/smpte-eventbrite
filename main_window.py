@@ -24,13 +24,17 @@ class MainWindow(uiclass, baseclass):
 
 		# Chargement du GUI
 		self.setupUi(self)
+		self.comboManualFilter.setItemData(0, "first_name")
+		self.comboManualFilter.setItemData(1, "last_name")
+		self.comboManualFilter.setItemData(2, "position")
+		self.comboManualFilter.setItemData(3, "company")
 		# Connexion des signaux
 		self.btnConnectUser.clicked.connect(self.connect_user_from_input)
 		self.comboOrg.currentIndexChanged.connect(self.load_events_list_from_input)
 		self.btnLoadEvent.clicked.connect(self.load_event_data_from_input)
 		self.tableAttendees.cellChanged.connect(self.update_attendee_from_cells)
-		self.btnRefreshCompanies.clicked.connect(self.fill_companies_table)
-		self.btnApplyCompanyChanges.clicked.connect(self.apply_company_name_changes)
+		self.comboManualFilter.currentIndexChanged.connect(self.fill_manual_filter_table)
+		self.btnApplyManualReplacement.clicked.connect(self.apply_manual_replacement)
 		self.btnSaveSession.clicked.connect(self.quicksave_session)
 		self.btnLoadSession.clicked.connect(self.quickload_session)
 
@@ -137,27 +141,37 @@ class MainWindow(uiclass, baseclass):
 			if cell_item is not None:
 				self.update_attendee_from_cells(i, 0)
 
-	def fill_companies_table(self):
-		company_names = {}
-		for att_id, att in self.eventbrite.attendees.items():
-			if att.company not in company_names:
-				company_names[att.company] = 0
-			company_names[att.company] += 1
+	def fill_manual_filter_table(self):
+		# Le 'data' du combobox est le nom du champs dans le dataclass Attendee
+		prop = self.comboManualFilter.currentData()
+		if prop is None:
+			self.tableManualFilter.clearContents()
+			self.tableManualFilter.setRowCount(0)
+			return
 
-		table = self.tableCompanyNames
+		values = {}
+		for att_id, att in self.eventbrite.attendees.items():
+			if att[prop] not in values:
+				values[att[prop]] = 0
+			values[att[prop]] += 1
+
+		table = self.tableManualFilter
 		table.clearContents()
-		table.setRowCount(len(company_names))
+		table.setRowCount(len(values))
 		# Faut désactiver le tri auto durant la modification de la table
 		table.sortItems(-1)
-		for i, co in enumerate(company_names.items()):
+		for i, co in enumerate(values.items()):
 			name, num_atts = co
 			table.setItem(i, 0, QTableWidgetItem(name.strip()))
 			table.setItem(i, 1, QTableWidgetItem(str(num_atts)))
 			table.setItem(i, 2, QTableWidgetItem(""))
 		table.sortItems(0)
 
-	def apply_company_name_changes(self):
-		table = self.tableCompanyNames
+	def apply_manual_replacement(self):
+		# Le 'data' du combobox est le nom du champs dans le dataclass Attendee
+		prop = self.comboManualFilter.currentData()
+
+		table = self.tableManualFilter
 		# Faut désactiver le tri auto durant la modification de la table
 		table.sortItems(-1)
 		for i in range(table.rowCount()):
@@ -167,11 +181,11 @@ class MainWindow(uiclass, baseclass):
 			if replace_cell is None or replace_cell.text().strip() == "":
 				continue
 			for att in self.eventbrite.attendees.values():
-				if att.company == name_cell.text().strip():
-					att.company = replace_cell.text().strip()
+				if att[prop] == name_cell.text().strip():
+					att[prop] = replace_cell.text().strip()
 		# Plus fiable de reconstruire les tables, même si un peu lent.
 		self.fill_attendees_table()
-		self.fill_companies_table()
+		self.fill_manual_filter_table()
 
 	def quicksave_session(self):
 		# Syncro avec la table (juste au cas)
@@ -209,6 +223,7 @@ class MainWindow(uiclass, baseclass):
 			self.eventbrite.event = session_data["event"]
 			self.eventbrite.load_serialized_attendees(session_data["attendees"])
 			self.fill_attendees_table()
+			self.comboManualFilter.setCurrentIndex(-1)
 		except FileNotFoundError:
 			logging.error(f"Could not load session from sessions/quicksave.json")
 
