@@ -3,6 +3,8 @@ import logging
 from collections import namedtuple
 
 import docxtpl
+import qrcode
+import png
 
 from utils import *
 
@@ -36,3 +38,9 @@ class NametagGenerator:
 			context[k] = data[v.value] if v.is_key else v.value
 		self.doc.render(context, autoescape=True)
 		self.doc.save(filepath)
+		logging.info(f"Generated nametag {filepath}")
+
+	def generate_qrcode(self, data, filepath):
+		img = qrcode.make(data)
+		img.save(filepath)
+		logging.info(f"Generated QR code {filepath}")

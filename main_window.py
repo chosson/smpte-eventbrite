@@ -238,15 +238,14 @@ class MainWindow(uiclass, baseclass):
 				self.nametag_gen.add_context_entry(var_name, True, combo_data)
 			else:
 				self.nametag_gen.add_context_entry(var_name, False, combo_txt)
-		
+
 		mkdir_if_not_there("output/")
 		self.sync_data_from_att_table()
 		for att_id, att in self.eventbrite.attendees.items():
 			if att.printing_status == PrintStatus.UNPRINTED:
-				filepath = f"output/{att_id}_nametag.docx"
-				self.nametag_gen.auto_generate_nametag(att, filepath)
+				self.nametag_gen.auto_generate_nametag(att, f"output/{att_id}_nametag.docx")
 				att.printing_status = PrintStatus.PRINTED
-				logging.info(f"Generated nametag {filepath}")
+				self.nametag_gen.generate_qrcode(att.barcode, f"output/{att_id}_qrcode.png")
 		# On a changé les états d'impression, donc on réaffiche la table.
 		self.fill_attendees_table()
 
@@ -256,7 +255,9 @@ class MainWindow(uiclass, baseclass):
 		session_data = {
 			"api_key": self.eventbrite.api.oauth_token,
 			"event": self.eventbrite.event,
-			"attendees": self.eventbrite.serialize_attendees()
+			"attendees": self.eventbrite.serialize_attendees(),
+			"nametag_template": self.nametag_gen.doc.template_file,
+			"template_context": self.nametag_gen.basic_context
 		}
 
 		mkdir_if_not_there("sessions/")
@@ -267,8 +268,11 @@ class MainWindow(uiclass, baseclass):
 
 	def quickload_session(self):
 		try:
+			# Chargement de la session
 			session_data = json.load(open("sessions/quicksave.json"))
 			logging.info(f"Loaded session from sessions/quicksave.json")
+
+			# Connexion et chargement de l'événement
 			self.lineApiKey.setText(session_data["api_key"])
 			self.lineApiKey.repaint()
 			self.connect_user_from_input()
@@ -280,10 +284,30 @@ class MainWindow(uiclass, baseclass):
 				if self.comboEvent.itemData(i) == int(session_data["event"]["id"]):
 					self.comboEvent.setCurrentIndex(i)
 					break
+
+			# Chargement des participants
 			self.eventbrite.event = session_data["event"]
 			self.eventbrite.load_serialized_attendees(session_data["attendees"])
 			self.fill_attendees_table()
 			self.comboManualFilter.setCurrentIndex(-1)
+
+			# Chargement du gabarit de cocarde et des variables de remplacement
+			self.load_doc_template(session_data["nametag_template"])
+			context = session_data["template_context"]
+			self.nametag_gen.basic_context = {k: TemplateVariableValue(*v) for k , v in context.items()}
+			table = self.tableDocVariables
+			for k, v in self.nametag_gen.basic_context.items():
+				for i in range(table.rowCount()):
+					if table.item(i, 0).text() == k:
+						cell = table.cellWidget(i, 1)
+						if v.is_key:
+							index = cell.findData(v.value)
+							cell.setCurrentIndex(index)
+						else:
+							cell.setCurrentIndex(-1)
+							cell.setCurrentText(v.value)
+							cell.setEditText(v.value)
+			self.groupAutoTemplate.setEnabled(True)
 		except FileNotFoundError:
 			logging.error(f"Could not load session from sessions/quicksave.json")
 
