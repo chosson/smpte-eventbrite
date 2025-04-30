@@ -10,6 +10,7 @@ from PySide6.QtWidgets import QMainWindow, QTableWidgetItem, QComboBox, QFileDia
 
 from utils import *
 from eventbrite_manager import *
+from nametag_generator import *
 
 
 # Importation des types venant du .ui
@@ -20,6 +21,7 @@ class MainWindow(uiclass, baseclass):
 		super().__init__(*args, **kwargs)
 
 		self.eventbrite = EventbriteManager()
+		self.nametag_gen = NametagGenerator()
 
 		# Chargement du GUI
 		self.setupUi(self)
@@ -27,6 +29,7 @@ class MainWindow(uiclass, baseclass):
 		self.comboManualFilter.setItemData(1, "last_name")
 		self.comboManualFilter.setItemData(2, "position")
 		self.comboManualFilter.setItemData(3, "company")
+		self.groupAutoTemplate.setEnabled(False)
 		# Connexion des signaux
 		self.btnConnectUser.clicked.connect(self.connect_user_from_input)
 		self.comboOrg.currentIndexChanged.connect(self.load_events_list_from_input)
@@ -34,6 +37,8 @@ class MainWindow(uiclass, baseclass):
 		self.tableAttendees.cellChanged.connect(self.update_attendee_from_cells)
 		self.comboManualFilter.currentIndexChanged.connect(self.fill_manual_filter_table)
 		self.btnApplyManualReplacement.clicked.connect(self.apply_manual_replacement)
+		self.btnSelectDocTemplate.clicked.connect(self.load_doc_template_from_input)
+		self.btnGenerateNametagsAuto.clicked.connect(self.generate_nametags_auto)
 		self.btnSaveSession.clicked.connect(self.quicksave_session)
 		self.btnLoadSession.clicked.connect(self.quickload_session)
 
@@ -188,6 +193,62 @@ class MainWindow(uiclass, baseclass):
 		# Plus fiable de reconstruire les tables, même si un peu lent.
 		self.fill_attendees_table()
 		self.fill_manual_filter_table()
+
+	def load_doc_template_from_input(self):
+		dialog = QFileDialog()
+		dialog.setFileMode(QFileDialog.FileMode.ExistingFile)
+		dialog.setNameFilter("Documents Word (*.docx)")
+		self.lblDocTemplate.setText("Sélection...")
+		if dialog.exec():
+			filepath = dialog.selectedFiles()[0]
+			self.load_doc_template(filepath)
+			self.groupAutoTemplate.setEnabled(True)
+
+	def load_doc_template(self, filepath):
+		self.nametag_gen.load_template(filepath)
+		self.lblDocTemplate.setText(filepath)
+		template_variables = self.nametag_gen.get_template_variables()
+		table = self.tableDocVariables
+		table.sortItems(-1)
+		table.clearContents()
+		table.setRowCount(len(template_variables))
+		for i, v in enumerate(template_variables):
+			table.setItem(i, 0, QTableWidgetItem(v))
+			combo = QComboBox()
+			combo.setEditable(True)
+			combo.setPlaceholderText("Entrez un texte ou sélectionner une propriété")
+			attendee_fields = list(Attendee.__dataclass_fields__.keys())
+			for name in attendee_fields:
+				combo.addItem(f"Attendee.{name}", name)
+			table.setCellWidget(i, 1, combo)
+			table.setItem(i, 2, QTableWidgetItem(("")))
+			table.item(i, 0).setFlags(table.item(i, 0).flags() & ~Qt.ItemIsEditable)
+		table.sortItems(0)
+
+	def generate_nametags_auto(self):
+		table = self.tableDocVariables
+		self.nametag_gen.reset_basic_context()
+		context = {}
+		for i in range(table.rowCount()):
+			var_name = table.item(i, 0).text()
+			value_combobox = table.cellWidget(i, 1)
+			combo_txt = value_combobox.currentText()
+			combo_data = value_combobox.currentData()
+			if value_combobox.currentIndex() != -1:
+				self.nametag_gen.add_context_entry(var_name, True, combo_data)
+			else:
+				self.nametag_gen.add_context_entry(var_name, False, combo_txt)
+		
+		mkdir_if_not_there("output/")
+		self.sync_data_from_att_table()
+		for att_id, att in self.eventbrite.attendees.items():
+			if att.printing_status == PrintStatus.UNPRINTED:
+				filepath = f"output/{att_id}_nametag.docx"
+				self.nametag_gen.auto_generate_nametag(att, filepath)
+				att.printing_status = PrintStatus.PRINTED
+				logging.info(f"Generated nametag {filepath}")
+		# On a changé les états d'impression, donc on réaffiche la table.
+		self.fill_attendees_table()
 
 	def quicksave_session(self):
 		# Syncro avec la table (juste au cas)

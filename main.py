@@ -18,6 +18,7 @@ def main():
 	app = QApplication(sys.argv)
 	win = main_window.MainWindow()
 	win.show()
+	logging.info("Window loaded")
 	app.exec()
 
 if __name__ == "__main__":
