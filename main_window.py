@@ -30,6 +30,7 @@ class MainWindow(uiclass, baseclass):
 		self.comboManualFilter.setItemData(2, "position")
 		self.comboManualFilter.setItemData(3, "company")
 		self.groupAutoTemplate.setEnabled(False)
+		self.comboCustomGenerators.addItems(self.nametag_gen.get_custom_render_steps())
 		# Connexion des signaux
 		self.btnConnectUser.clicked.connect(self.connect_user_from_input)
 		self.comboOrg.currentIndexChanged.connect(self.load_events_list_from_input)
@@ -38,7 +39,7 @@ class MainWindow(uiclass, baseclass):
 		self.comboManualFilter.currentIndexChanged.connect(self.fill_manual_filter_table)
 		self.btnApplyManualReplacement.clicked.connect(self.apply_manual_replacement)
 		self.btnSelectDocTemplate.clicked.connect(self.load_doc_template_from_input)
-		self.btnGenerateNametagsAuto.clicked.connect(self.generate_nametags_auto)
+		self.btnGenerateNametags.clicked.connect(self.generate_nametags)
 		self.btnSaveSession.clicked.connect(self.quicksave_session)
 		self.btnLoadSession.clicked.connect(self.quickload_session)
 
@@ -225,10 +226,27 @@ class MainWindow(uiclass, baseclass):
 			table.item(i, 0).setFlags(table.item(i, 0).flags() & ~Qt.ItemIsEditable)
 		table.sortItems(0)
 
-	def generate_nametags_auto(self):
+	def generate_nametags(self):
+		self.sync_data_from_att_table()
+		self.sync_nametag_context_from_table()
+
+		custom_steps = []
+		if self.comboCustomGenerators.currentIndex() != 0:
+			custom_steps = [self.comboCustomGenerators.currentText()]
+
+		mkdir_if_not_there("output/")
+		self.sync_data_from_att_table()
+		for att_id, att in self.eventbrite.attendees.items():
+			if att.printing_status == PrintStatus.UNPRINTED:
+				self.nametag_gen.generate_nametag(att, f"output/{att_id}_nametag.docx", custom_steps)
+				if self.checkMarkPrinted.isChecked():
+					att.printing_status = PrintStatus.PRINTED
+		# On a changé les états d'impression, donc on réaffiche la table.
+		self.fill_attendees_table()
+
+	def sync_nametag_context_from_table(self):
 		table = self.tableDocVariables
 		self.nametag_gen.reset_basic_context()
-		context = {}
 		for i in range(table.rowCount()):
 			var_name = table.item(i, 0).text()
 			value_combobox = table.cellWidget(i, 1)
@@ -239,25 +257,17 @@ class MainWindow(uiclass, baseclass):
 			else:
 				self.nametag_gen.add_context_entry(var_name, False, combo_txt)
 
-		mkdir_if_not_there("output/")
-		self.sync_data_from_att_table()
-		for att_id, att in self.eventbrite.attendees.items():
-			if att.printing_status == PrintStatus.UNPRINTED:
-				self.nametag_gen.auto_generate_nametag(att, f"output/{att_id}_nametag.docx")
-				att.printing_status = PrintStatus.PRINTED
-				self.nametag_gen.generate_qrcode(att.barcode, f"output/{att_id}_qrcode.png")
-		# On a changé les états d'impression, donc on réaffiche la table.
-		self.fill_attendees_table()
-
 	def quicksave_session(self):
 		# Syncro avec la table (juste au cas)
 		self.sync_data_from_att_table()
+		self.sync_nametag_context_from_table()
 		session_data = {
 			"api_key": self.eventbrite.api.oauth_token,
 			"event": self.eventbrite.event,
 			"attendees": self.eventbrite.serialize_attendees(),
 			"nametag_template": self.nametag_gen.doc.template_file,
-			"template_context": self.nametag_gen.basic_context
+			"template_context": self.nametag_gen.basic_context,
+			"custom_nametag_step": self.comboCustomGenerators.currentIndex()
 		}
 
 		mkdir_if_not_there("sessions/")
@@ -307,6 +317,7 @@ class MainWindow(uiclass, baseclass):
 							cell.setCurrentIndex(-1)
 							cell.setCurrentText(v.value)
 							cell.setEditText(v.value)
+			self.comboCustomGenerators.setCurrentIndex(session_data["custom_nametag_step"])
 			self.groupAutoTemplate.setEnabled(True)
 		except FileNotFoundError:
 			logging.error(f"Could not load session from sessions/quicksave.json")
